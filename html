@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Rules - Read or Get Kicked</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Glitch Header */
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            border-bottom: 3px solid #ff0040;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            position: relative;
+            animation: glitch 1s infinite;
+        }
+
+        @keyframes glitch {
+            0% {
+                text-shadow: 2px 2px #ff0040, -2px -2px #00ffff;
+            }
+            25% {
+                text-shadow: -2px -2px #ff0040, 2px 2px #00ffff;
+            }
+            50% {
+                text-shadow: 2px -2px #ff0040, -2px 2px #00ffff;
+            }
+            75% {
+                text-shadow: -2px 2px #ff0040, 2px -2px #00ffff;
+            }
+            100% {
+                text-shadow: 2px 2px #ff0040, -2px -2px #00ffff;
+            }
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: #888;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Section Styles */
+        .section {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-left: 4px solid #ff0040;
+            padding: 30px;
+            margin: 40px 0;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-left-color: #00ffff;
+            transform: translateX(5px);
+        }
+
+        .section h2 {
+            font-size: 2.2rem;
+            color: #ff0040;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
+            font-weight: 900;
+        }
+
+        .section h3 {
+            font-size: 1.5rem;
+            color: #00ffff;
+            margin: 25px 0 15px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section p {
+            color: #b0b0b0;
+            margin: 10px 0;
+            font-size: 1.05rem;
+        }
+
+        /* Rule Items */
+        .rule-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0;
+            transition: all 0.3s ease;
+        }
+
+        .rule-item:hover {
+            background: rgba(255,0,64,0.05);
+            border-color: #ff0040;
+            transform: translateX(10px);
+        }
+
+        .rule-number {
+            color: #ff0040;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* Lists */
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            padding: 12px 0 12px 30px;
+            position: relative;
+            color: #b0b0b0;
+            font-size: 1.05rem;
+        }
+
+        ul li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #ff0040;
+            font-size: 1.2rem;
+        }
+
+        /* Warning Boxes */
+        .warning-box {
+            background: linear-gradient(135deg, #1a0000 0%, #0d0000 100%);
+            border: 2px solid #ff0040;
+            padding: 25px;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .warning-box::before {
+            content: "⚠";
+            position: absolute;
+            top: -20px;
+            left: 20px;
+            background: #0a0a0a;
+            padding: 0 15px;
+            font-size: 2rem;
+            color: #ff0040;
+        }
+
+        .warning-box h3 {
+            color: #ff0040;
+            margin-bottom: 15px;
+        }
+
+        /* Allowed/Not Allowed Boxes */
+        .allowed-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .allowed, .not-allowed {
+            padding: 20px;
+            border: 2px solid;
+        }
+
+        .allowed {
+            background: rgba(0,255,0,0.05);
+            border-color: #00ff00;
+        }
+
+        .not-allowed {
+            background: rgba(255,0,0,0.05);
+            border-color: #ff0040;
+        }
+
+        .allowed h4 {
+            color: #00ff00;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .not-allowed h4 {
+            color: #ff0040;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .allowed ul li::before {
+            content: "✓";
+            color: #00ff00;
+        }
+
+        .not-allowed ul li::before {
+            content: "✗";
+            color: #ff0040;
+        }
+
+        /* Terminal-style box */
+        .terminal {
+            background: #000;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+            color: #00ff00;
+            position: relative;
+        }
+
+        .terminal::before {
+            content: "> SYSTEM MESSAGE";
+            display: block;
+            margin-bottom: 10px;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .terminal p {
+            color: #00ff00;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 3px solid #ff0040;
+            margin-top: 60px;
+        }
+
+        footer p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .section h2 {
+                font-size: 1.8rem;
+            }
+
+            .allowed-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Blink effect for emphasis */
+        .blink {
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+
+        /* Emphasis text */
+        strong {
+            color: #ff0040;
+            font-weight: bold;
+        }
+
+        em {
+            color: #00ffff;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📜 RULES</h1>
+            <p class="subtitle">READ THEM OR GET KICKED. YOUR CHOICE.</p>
+        </header>
+
+        <div class="terminal">
+            <p>Welcome to the chaos. We're all about freedom and vibes here, but even chaos needs some structure. These are the only real lines you can't cross.</p>
+        </div>
+
+        <div class="section">
+            <h2>🔥 THE VIBE</h2>
+            <p>This is a chill, unhinged hangout where you can:</p>
+            <ul>
+                <li><strong>Be yourself</strong> - Unfiltered, authentic, whatever</li>
+                <li><strong>Have fun</strong> - Memes, roasting, jokes, gaming, whatever floats your boat</li>
+                <li><strong>Push boundaries</strong> - We're not your typical "wholesome uwu" server</li>
+                <li><strong>Embrace the chaos</strong> - Things get wild here and that's the point</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>⚖️ THE ACTUAL RULES</h2>
+            <p style="margin-bottom: 20px;">Yes, we have some.</p>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">01</span> FOLLOW DISCORD TOS</h3>
+                <ul>
+                    <li>No illegal shit (seriously, we don't want the server nuked)</li>
+                    <li>You must be 13+ (Discord's rule, not ours)</li>
+                    <li>No doxxing - posting personal info gets you instant banned</li>
+                    <li>No actual threats of violence or illegal activity</li>
+                </ul>
+            </div>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">02</span> DON'T BE <em>ACTUALLY</em> EVIL</h3>
+                <ul>
+                    <li>Dark humor? Sure. Actual hate speech targeting people? Nah.</li>
+                    <li>Edgy jokes are fine, but straight-up bigotry isn't the vibe</li>
+                    <li>There's a difference between being chaotic and being a genuine asshole</li>
+                    <li>Read the room - if multiple people say stop, probably stop</li>
+                </ul>
+            </div>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">03</span> NSFW HAS ITS PLACE</h3>
+                <ul>
+                    <li>NSFW content stays in NSFW channels ONLY (if we make them)</li>
+                    <li>Don't post it in general or you're getting timed out</li>
+                    <li>No illegal content, no exceptions</li>
+                    <li>Keep your profile pic/username somewhat appropriate</li>
+                </ul>
+            </div>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">04</span> NO SPAM (Unless It's Funny)</h3>
+                <ul>
+                    <li>Don't flood channels with the same message 50 times</li>
+                    <li>Copypasta is fine occasionally</li>
+                    <li>Don't spam DMs to people - that's annoying</li>
+                    <li>Server advertisements = instant ban</li>
+                </ul>
+            </div>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">05</span> DRAMA IS ENTERTAINMENT, NOT A LIFESTYLE</h3>
+                <ul>
+                    <li>We love a good roast session or banter</li>
+                    <li>Starting genuine beef or trying to turn the server toxic? Not it</li>
+                    <li>Take serious arguments to DMs</li>
+                    <li>Don't make the server your therapy session 24/7 (a little is fine, we're human)</li>
+                </ul>
+            </div>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">06</span> STAFF WORD IS FINAL</h3>
+                <ul>
+                    <li>Mods are chill but don't test them</li>
+                    <li>If they tell you to chill out, chill out</li>
+                    <li>Arguing in public channels = mute</li>
+                    <li>You can appeal/question decisions in DMs respectfully</li>
+                </ul>
+            </div>
+
+            <div class="rule-item">
+                <h3><span class="rule-number">07</span> USE COMMON SENSE</h3>
+                <ul>
+                    <li>If you have to ask "is this too far?" it probably is</li>
+                    <li>Don't be the person who ruins it for everyone</li>
+                    <li>We're here for chaotic good, not chaotic evil</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎭 WHAT'S ACTUALLY ALLOWED HERE</h2>
+            
+            <div class="allowed-section">
+                <div class="allowed">
+                    <h4>✓ YES</h4>
+                    <ul>
+                        <li>Dark humor (read the room though)</li>
+                        <li>Roasting/banter (if everyone's having fun)</li>
+                        <li>Cursing/swearing</li>
+                        <li>Being weird and unhinged</li>
+                        <li>Hot takes and controversial opinions</li>
+                        <li>Memes (even spicy ones)</li>
+                        <li>Venting/ranting</li>
+                        <li>Chaos and shenanigans</li>
+                    </ul>
+                </div>
+
+                <div class="not-allowed">
+                    <h4>✗ NO</h4>
+                    <ul>
+                        <li>Actual bigotry/discrimination</li>
+                        <li>Sexual content in non-NSFW channels</li>
+                        <li>Doxxing or sharing personal info</li>
+                        <li>Raiding or brigading</li>
+                        <li>Malicious links/scams</li>
+                        <li>Being genuinely cruel or toxic</li>
+                        <li>Anything illegal</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h3>⚠️ CONSEQUENCES</h3>
+            <p>We're not gonna hit you with a 12-step warning system. Here's how it works:</p>
+            <ul style="margin-top: 15px;">
+                <li><strong>Minor stuff:</strong> Warning or short mute (few hours)</li>
+                <li><strong>Medium stuff:</strong> Longer mute or temp ban (1-7 days)</li>
+                <li><strong>Major stuff:</strong> Permanent ban, no appeal</li>
+            </ul>
+            <p style="margin-top: 15px;"><em>Staff have full discretion. Don't like it? Make your own server.</em></p>
+        </div>
+
+        <div class="section">
+            <h2>💀 THE PROBLEMATIC ENERGY</h2>
+            <p>Look, we're not gonna pretend this is some wholesome family-friendly space. We're chaotic, sometimes problematic, and definitely not for everyone.</p>
+
+            <h3 style="margin-top: 30px;">What this means:</h3>
+            <ul>
+                <li>Expect edgy humor and unfiltered conversations</li>
+                <li>People here don't walk on eggshells</li>
+                <li>You might see or hear things that make you uncomfortable</li>
+                <li>We roast each other - don't join if you're sensitive</li>
+            </ul>
+
+            <h3>What this DOESN'T mean:</h3>
+            <ul>
+                <li>Free pass to be genuinely hateful</li>
+                <li>Harassment is okay (it's not)</li>
+                <li>Rules don't apply (they do)</li>
+                <li>Anything goes (it doesn't)</li>
+            </ul>
+
+            <div class="terminal" style="margin-top: 30px;">
+                <p><span class="blink">&gt;&gt;&gt;</span> Know the difference between:</p>
+                <p>Edgy joke ≠ Hate speech</p>
+                <p>Banter ≠ Bullying</p>
+                <p>Chaotic ≠ Malicious</p>
+                <p>Dark humor ≠ Cruelty</p>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h3>🤷 IF YOU'RE EASILY OFFENDED</h3>
+            <p>This server probably isn't for you. We're not trying to be mean, but:</p>
+            <ul style="margin-top: 15px;">
+                <li>People curse here</li>
+                <li>Dark/edgy humor happens</li>
+                <li>Conversations get wild</li>
+                <li>Not everything is PC</li>
+            </ul>
+            <p style="margin-top: 15px;"><strong>BUT</strong> there's still a line. If someone crosses from "edgy" into "actually harmful," report it.</p>
+        </div>
+
+        <div class="section">
+            <h2>📞 NEED HELP?</h2>
+            <ul>
+                <li><strong>Got a question?</strong> Ask in chat or DM a mod</li>
+                <li><strong>Someone being genuinely shitty?</strong> DM a mod</li>
+                <li><strong>Want to appeal a ban?</strong> Good luck, but you can try DMing an admin</li>
+            </ul>
+        </div>
+
+        <div class="terminal">
+            <p>We're here for a good time, not a long time.</p>
+            <p>Keep it chaotic, keep it real, don't be a dick (in the bad way), and we'll all get along fine.</p>
+            <p style="margin-top: 15px;">If you can't handle the heat, there are plenty of other servers. No hard feelings.</p>
+        </div>
+
+        <footer>
+            <h2 style="color: #ff0040; font-size: 2.5rem; margin-bottom: 20px;">WELCOME TO THE CHAOS</h2>
+            <p style="color: #888; font-size: 1.2rem;">Don't fuck it up. 🔥</p>
+            <p style="margin-top: 30px; color: #444;">Last Updated: October 2025</p>
+            <p style="color: #444;">Rules Subject to Change When We Feel Like It</p>
+        </footer>
+    </div>
+</body>
+</html>
